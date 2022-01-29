@@ -1,13 +1,17 @@
 package kata.demo.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
-@Value
+@Data
 @Builder
 public class Statement {
+    @JsonFormat(pattern = "dd/MM/yyyy HH:mm:ss")
+    LocalDateTime date;
     StatementType type;
     BigDecimal amount;
 

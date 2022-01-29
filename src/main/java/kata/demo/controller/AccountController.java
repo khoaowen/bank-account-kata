@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -73,10 +74,19 @@ public class AccountController {
             content = {@Content(mediaType = "application/json")})
     @Parameter(name = "id", in = ParameterIn.PATH, description = "Account Id", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
     @PostMapping("/{id}/statements")
-    public ResponseEntity<Account> makeStatement(@RequestBody Statement statement,
-                                                 @PathVariable UUID id
+    public ResponseEntity<Account> makeStatement(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Statement to apply on the account",
+                    content = @Content(schema = @Schema(implementation = Statement.class),
+                            examples = {@ExampleObject(name = "A statement to be applied",
+                                    value = "{\n" +
+                                            "  \"type\": \"DEPOSIT\",\n" +
+                                            "  \"amount\": 15\n" +
+                                            "}")}), required = true)
+            @RequestBody Statement statement,
+            @PathVariable UUID id
 //                                           @RequestHeader("If-Match") Integer ifMatch
     ) {
+        statement.setDate(LocalDateTime.now());
         // get existing account
         Optional<Account> existingAccount = accountService.findById(id);
 

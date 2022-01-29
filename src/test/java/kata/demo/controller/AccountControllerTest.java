@@ -1,6 +1,7 @@
 package kata.demo.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import kata.demo.dto.Account;
 import kata.demo.dto.AccountType;
 import kata.demo.dto.Statement;
@@ -20,10 +21,12 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -40,7 +43,9 @@ class AccountControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private ObjectMapper objectMapper = JsonMapper.builder()
+            .findAndAddModules()
+            .build();
 
     @Test
     @DisplayName("POST /account - Success")
@@ -95,7 +100,7 @@ class AccountControllerTest {
 
     @Test
     @DisplayName("POST Deposit /account/{id}/statements - Success")
-    void testDispositToAccount() throws Exception {
+    void testDespositToAccount() throws Exception {
         UUID id = UUID.randomUUID();
         Account existingAcc = Account.builder()
                 .id(id)
@@ -103,21 +108,26 @@ class AccountControllerTest {
                 .statements(List.of())
                 .balance(BigDecimal.ONE).build();
         when(accountService.findById(id)).thenReturn(Optional.of(existingAcc));
-        Statement statement = Statement.builder()
+        Statement statementPostBody = Statement.builder()
                 .amount(BigDecimal.valueOf(11))
                 .type(StatementType.DEPOSIT)
+                .build();
+        Statement timeStampStatement = Statement.builder()
+                .date(LocalDateTime.of(2022, 01, 03, 11, 30, 29))
+                .amount(statementPostBody.getAmount())
+                .type(statementPostBody.getType())
                 .build();
         Account updatedAcc = Account.builder()
                 .id(id)
                 .type(AccountType.CHECKING)
-                .statements(List.of(statement))
+                .statements(List.of(timeStampStatement))
                 .balance(BigDecimal.valueOf(11)).build();
-        when(accountService.update(existingAcc, statement)).thenReturn(Optional.of(updatedAcc));
+        when(accountService.update(any(Account.class), any(Statement.class))).thenReturn(Optional.of(updatedAcc));
 
 
         mockMvc.perform(post("/account/" + id + "/statements")
                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                .content(objectMapper.writeValueAsString(statement))
+                                .content(objectMapper.writeValueAsString(statementPostBody))
 //                        .header("If-Match", "1")
                 )
                 .andExpect(status().isCreated())
@@ -125,6 +135,9 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.type").value(AccountType.CHECKING.toString()))
                 .andExpect(jsonPath("$.balance").value(BigDecimal.valueOf(11)))
                 .andExpect(jsonPath("$.statements", Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.statements[0].type").value("DEPOSIT"))
+                .andExpect(jsonPath("$.statements[0].amount").value("11"))
+                .andExpect(jsonPath("$.statements[0].date").value("03/01/2022 11:30:29"))
         ;
 
     }
@@ -140,21 +153,26 @@ class AccountControllerTest {
                 .statements(List.of())
                 .balance(BigDecimal.valueOf(50)).build();
         when(accountService.findById(id)).thenReturn(Optional.of(existingAcc));
-        Statement statement = Statement.builder()
+        Statement statementPostBody = Statement.builder()
                 .amount(BigDecimal.valueOf(11))
                 .type(StatementType.WITHDRAWAL)
+                .build();
+        Statement timeStampStatement = Statement.builder()
+                .date(LocalDateTime.of(2022, 01, 03, 11, 30, 29))
+                .amount(statementPostBody.getAmount())
+                .type(statementPostBody.getType())
                 .build();
         Account updatedAcc = Account.builder()
                 .id(id)
                 .type(AccountType.CHECKING)
-                .statements(List.of(statement))
+                .statements(List.of(timeStampStatement))
                 .balance(BigDecimal.valueOf(39)).build();
-        when(accountService.update(existingAcc, statement)).thenReturn(Optional.of(updatedAcc));
+        when(accountService.update(any(Account.class), any(Statement.class))).thenReturn(Optional.of(updatedAcc));
 
 
         mockMvc.perform(post("/account/" + id + "/statements")
                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                .content(objectMapper.writeValueAsString(statement))
+                                .content(objectMapper.writeValueAsString(statementPostBody))
 //                        .header("If-Match", "1")
                 )
                 .andExpect(status().isCreated())
@@ -162,6 +180,9 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.type").value(AccountType.CHECKING.toString()))
                 .andExpect(jsonPath("$.balance").value(BigDecimal.valueOf(39)))
                 .andExpect(jsonPath("$.statements", Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.statements[0].type").value("WITHDRAWAL"))
+                .andExpect(jsonPath("$.statements[0].amount").value("11"))
+                .andExpect(jsonPath("$.statements[0].date").value("03/01/2022 11:30:29"))
         ;
     }
 
