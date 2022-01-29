@@ -35,7 +35,7 @@ class AccountControllerIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     @DisplayName("POST /account - Success")
@@ -71,6 +71,18 @@ class AccountControllerIntegrationTest {
         return accountService.save(anAccount);
     }
 
+    private Account populateAnAccountWithStatement() {
+        Statement statement = Statement.builder()
+                .type(StatementType.DEPOSIT)
+                .amount(BigDecimal.TEN)
+                .build();
+        Account anAccount = Account.builder()
+                .type(AccountType.CHECKING)
+                .statements(List.of(statement))
+                .balance(BigDecimal.TEN).build();
+        return accountService.save(anAccount);
+    }
+
     @Test
     @DisplayName("GET /account - NotFound")
     void testGetNotValidAccount() throws Exception {
@@ -83,7 +95,7 @@ class AccountControllerIntegrationTest {
     @Test
     @DisplayName("POST Deposit /account/{id}/statements - Success")
     void testDepositToAccount() throws Exception {
-        Account account = populateAnAccount();
+        Account account = populateAnAccountWithStatement();
         Statement statement = Statement.builder()
                 .amount(BigDecimal.valueOf(11))
                 .type(StatementType.DEPOSIT)
@@ -99,7 +111,7 @@ class AccountControllerIntegrationTest {
                 .andExpect(jsonPath("$.id").value(account.getId().toString()))
                 .andExpect(jsonPath("$.type").value(AccountType.CHECKING.toString()))
                 .andExpect(jsonPath("$.balance").value(BigDecimal.valueOf(21)))
-                .andExpect(jsonPath("$.statements", Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.statements", Matchers.hasSize(2)))
         ;
 
     }
@@ -107,7 +119,7 @@ class AccountControllerIntegrationTest {
     @Test
     @DisplayName("POST Withdrawal /account/{id}/statements - Success")
     void testWithdrawalFromAccount() throws Exception {
-        Account account = populateAnAccount();
+        Account account = populateAnAccountWithStatement();
         Statement statement = Statement.builder()
                 .amount(BigDecimal.valueOf(10))
                 .type(StatementType.WITHDRAWAL)
@@ -123,7 +135,7 @@ class AccountControllerIntegrationTest {
                 .andExpect(jsonPath("$.id").value(account.getId().toString()))
                 .andExpect(jsonPath("$.type").value(AccountType.CHECKING.toString()))
                 .andExpect(jsonPath("$.balance").value(BigDecimal.ZERO))
-                .andExpect(jsonPath("$.statements", Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.statements", Matchers.hasSize(2)))
         ;
 
     }

@@ -44,6 +44,7 @@ public class AccountService {
                 .statements(updatedStatements)
                 .balance(updatedBalance)
                 .build();
+        accountsStorage.put(updated.getId(), updated);
         return Optional.of(updated);
     }
 }
