@@ -28,7 +28,7 @@ public class AccountController {
                 .buildAndExpand(saved.getId())
                 .toUri();
         return ResponseEntity.created(location)
-                .body(account);
+                .body(saved);
     }
 
     @GetMapping("/{id}")
@@ -47,17 +47,26 @@ public class AccountController {
 
     @PostMapping("/{id}/statements")
     public ResponseEntity<Account> makeStatement(@RequestBody Statement statement,
-                                                 @PathVariable UUID id,
-                                                 @RequestHeader("If-Match") Integer ifMatch) {
+                                                 @PathVariable UUID id
+//                                           @RequestHeader("If-Match") Integer ifMatch
+    ) {
         // get existing account
         Optional<Account> existingAccount = accountService.findById(id);
-        return existingAccount.map(acc -> {
-            acc.getStatements().add(statement);
-            acc.setBalance(statement.applyStatement(acc.getBalance()));
-            accountService.save(acc);
-            return ResponseEntity.ok()
-                    .body(acc);
+
+        @SuppressWarnings("unchecked")
+        ResponseEntity<Account> accountResponseEntity = (ResponseEntity<Account>) existingAccount.map(acc -> {
+            Optional<Account> saved = accountService.update(acc, statement);
+            if (saved.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            URI location = ServletUriComponentsBuilder
+                    .fromCurrentRequest()
+                    .build()
+                    .toUri();
+            return ResponseEntity.created(location)
+                    .body(saved.get());
         }).orElse(ResponseEntity.notFound().build());
+        return accountResponseEntity;
 
     }
 

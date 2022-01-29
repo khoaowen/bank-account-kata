@@ -1,14 +1,14 @@
 package kata.demo.dto;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Value;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 @Builder
-@Data
+@Value
 public class Account {
     UUID id;
     AccountType type;
