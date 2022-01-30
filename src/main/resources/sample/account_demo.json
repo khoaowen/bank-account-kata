@@ -1,0 +1,47 @@
+{
+  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "type": "CHECKING",
+  "balance": 102,
+  "statements": [
+    {
+      "date": "2022-01-03T15:38:48.043Z",
+      "type": "DEPOSIT",
+      "amount": 1
+    },
+    {
+      "date": "2022-01-05T16:38:48.043Z",
+      "type": "DEPOSIT",
+      "amount": 2
+    },
+    {
+      "date": "2022-01-05T17:38:48.043Z",
+      "type": "DEPOSIT",
+      "amount": 3
+    },
+    {
+      "date": "2022-01-07T18:38:48.043Z",
+      "type": "DEPOSIT",
+      "amount": 4
+    },
+    {
+      "date": "2022-01-08T19:38:48.043Z",
+      "type": "DEPOSIT",
+      "amount": 5
+    },
+    {
+      "date": "2022-01-09T20:38:48.043Z",
+      "type": "WITHDRAWAL",
+      "amount": 6
+    },
+    {
+      "date": "2022-01-10T21:38:48.043Z",
+      "type": "WITHDRAWAL",
+      "amount": 7
+    },
+    {
+      "date": "2022-01-11T22:38:48.043Z",
+      "type": "DEPOSIT",
+      "amount": 100
+    }
+  ]
+}

@@ -1,10 +1,17 @@
 package kata.demo.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import kata.demo.dto.Account;
 import kata.demo.dto.Statement;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Service
@@ -12,6 +19,20 @@ public class AccountService {
 
     //FIXME Requirement is NO PERSISTENCE, so I have to manually manage the database here with these boilerplate codes....
     private final HashMap<UUID, Account> accountsStorage = new HashMap<>();
+
+    @Value("classpath:sample/account_demo.json")
+    Resource accountDemo;
+
+    private final ObjectMapper objectMapper = JsonMapper.builder()
+            .findAndAddModules()
+            .build();
+
+    @PostConstruct
+    private void initExampleAccount() throws IOException {
+        objectMapper.setDateFormat(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"));
+        Account account = objectMapper.readValue(accountDemo.getFile(), Account.class);
+        accountsStorage.put(account.getId(), account);
+    }
 
     public Account save(Account account) {
         // No persistence so here I need to do all READ/WRITE operations for demo

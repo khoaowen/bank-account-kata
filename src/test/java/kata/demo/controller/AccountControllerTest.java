@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,7 +44,7 @@ class AccountControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    private ObjectMapper objectMapper = JsonMapper.builder()
+    private final ObjectMapper objectMapper = JsonMapper.builder()
             .findAndAddModules()
             .build();
 
@@ -142,7 +143,6 @@ class AccountControllerTest {
 
     }
 
-
     @Test
     @DisplayName("POST Withdrawal /account/{id}/statements - Success")
     void testWithdrawalFromAccount() throws Exception {
@@ -183,6 +183,66 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.statements[0].type").value("WITHDRAWAL"))
                 .andExpect(jsonPath("$.statements[0].amount").value("11"))
                 .andExpect(jsonPath("$.statements[0].date").value("03/01/2022 11:30:29"))
+        ;
+    }
+
+    @Test
+    @DisplayName("GET printStatements with pagesize 2 /account/{id}/statements - Success")
+    void testGetStatementsPagesSize2() throws Exception {
+        UUID id = UUID.randomUUID();
+        List<Statement> statements = new ArrayList<>();
+        for (int i = 1; i < 11; i++) {
+            statements.add(Statement.builder()
+                    .date(LocalDateTime.now())
+                    .type(i % 2 == 0 ? StatementType.DEPOSIT : StatementType.WITHDRAWAL)
+                    .amount(BigDecimal.valueOf(i))
+                    .build());
+        }
+        Account existingAcc = Account.builder()
+                .id(id)
+                .type(AccountType.CHECKING)
+                .statements(statements)
+                .balance(BigDecimal.valueOf(50)).build();
+        when(accountService.findById(id)).thenReturn(Optional.of(existingAcc));
+        mockMvc.perform(get("/account/" + id + "/statements")
+                        .param("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accountBalance").value(BigDecimal.valueOf(50)))
+                .andExpect(jsonPath("$.currentPage").value(BigDecimal.valueOf(0)))
+                .andExpect(jsonPath("$.totalPages").value(BigDecimal.valueOf(5)))
+                .andExpect(jsonPath("$.totalStatements").value(10))
+                .andExpect(jsonPath("$.statements", Matchers.hasSize(2)))
+        ;
+    }
+
+    @Test
+    @DisplayName("GET printStatements with order by date /account/{id}/statements - Success")
+    void testGetStatementsPagesOrderByDate() throws Exception {
+        UUID id = UUID.randomUUID();
+        List<Statement> statements = new ArrayList<>();
+        for (int i = 1; i < 11; i++) {
+            statements.add(Statement.builder()
+                    .date(LocalDateTime.now())
+                    .type(i % 2 == 0 ? StatementType.DEPOSIT : StatementType.WITHDRAWAL)
+                    .amount(BigDecimal.valueOf(i))
+                    .build());
+        }
+        Account existingAcc = Account.builder()
+                .id(id)
+                .type(AccountType.CHECKING)
+                .statements(statements)
+                .balance(BigDecimal.valueOf(50)).build();
+        when(accountService.findById(id)).thenReturn(Optional.of(existingAcc));
+        mockMvc.perform(get("/account/" + id + "/statements")
+                        .param("size", "5")
+                        .param("sort", "date,desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accountBalance").value(BigDecimal.valueOf(50)))
+                .andExpect(jsonPath("$.currentPage").value(BigDecimal.valueOf(0)))
+                .andExpect(jsonPath("$.totalPages").value(BigDecimal.valueOf(2)))
+                .andExpect(jsonPath("$.totalStatements").value(10))
+                .andExpect(jsonPath("$.statements", Matchers.hasSize(5)))
+                .andExpect(jsonPath("$.statements[0].amount").value(10))
         ;
     }
 
