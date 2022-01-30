@@ -9,6 +9,9 @@ import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * A statement/operation which is made on an account
+ */
 @Data
 @Builder
 public class Statement {

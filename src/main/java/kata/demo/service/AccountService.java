@@ -39,6 +39,12 @@ public class AccountService {
         accountsStorage.put(account.getId(), account);
     }
 
+    /**
+     * Update or create the account. An Id will be generated if it's a new account, otherwise the existing account will be replaced with the new one
+     *
+     * @param account account to be created or updated
+     * @return
+     */
     public Account save(Account account) {
         // No persistence so here I need to do all READ/WRITE operations for demo
         Account newAccount = Account.builder()
@@ -50,6 +56,12 @@ public class AccountService {
         return newAccount;
     }
 
+    /**
+     * Search for the account by the id
+     *
+     * @param id the account id
+     * @return
+     */
     public Account findById(UUID id) {
         Account value = accountsStorage.get(id);
         if (value == null) {
@@ -58,6 +70,13 @@ public class AccountService {
         return value;
     }
 
+    /**
+     * Make a statement/operation to the account, be a withdrawal or a deposit. The account balance will be updated and the statement will be added to its list
+     *
+     * @param account   account to be updated with the statement
+     * @param statement statement to be appliedy to the account, which could be a {@link kata.demo.dto.StatementType#DEPOSIT} or a {@link kata.demo.dto.StatementType#WITHDRAWAL}
+     * @return
+     */
     public Account update(Account account, Statement statement) {
         Account existingAccount = findById(account.getId());
         if (existingAccount == null) {
@@ -67,7 +86,7 @@ public class AccountService {
         List<Statement> updatedStatements = new ArrayList<>(existingAccount.getStatements());
         updatedStatements.add(statement);
         BigDecimal updatedBalance = statement.applyStatement(existingAccount.getBalance());
-        if (updatedBalance.compareTo(BigDecimal.ZERO) == -1) {
+        if (updatedBalance.compareTo(BigDecimal.ZERO) < 0) {
             throw new AccountInsufficientBalance();
         }
         Account updated = Account.builder()
