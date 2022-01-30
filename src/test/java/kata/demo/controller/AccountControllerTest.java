@@ -6,6 +6,8 @@ import kata.demo.dto.Account;
 import kata.demo.dto.AccountType;
 import kata.demo.dto.Statement;
 import kata.demo.dto.StatementType;
+import kata.demo.exception.AccountInsufficientBalance;
+import kata.demo.exception.AccountNotFoundException;
 import kata.demo.service.AccountService;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +26,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -82,8 +83,8 @@ class AccountControllerTest {
                 .type(AccountType.CHECKING)
                 .statements(List.of())
                 .balance(BigDecimal.ZERO).build();
-        when(accountService.findById(id)).thenReturn(Optional.of(mockedAccount));
-        mockMvc.perform(get("/account/" +id ))
+        when(accountService.findById(id)).thenReturn(mockedAccount);
+        mockMvc.perform(get("/account/" + id))
                 .andExpect(status().isCreated())
                 .andExpect(redirectedUrlPattern("http://*/account/" + id));
 
@@ -93,7 +94,7 @@ class AccountControllerTest {
     @DisplayName("GET /account - NotFound")
     void testGetNotValidAccount() throws Exception {
         UUID id = UUID.randomUUID();
-        when(accountService.findById(id)).thenReturn(Optional.empty());
+        when(accountService.findById(id)).thenThrow(new AccountNotFoundException(id));
         mockMvc.perform(get("/account/" + id))
                 .andExpect(status().isNotFound());
 
@@ -108,7 +109,7 @@ class AccountControllerTest {
                 .type(AccountType.CHECKING)
                 .statements(List.of())
                 .balance(BigDecimal.ONE).build();
-        when(accountService.findById(id)).thenReturn(Optional.of(existingAcc));
+        when(accountService.findById(id)).thenReturn(existingAcc);
         Statement statementPostBody = Statement.builder()
                 .amount(BigDecimal.valueOf(11))
                 .type(StatementType.DEPOSIT)
@@ -123,7 +124,7 @@ class AccountControllerTest {
                 .type(AccountType.CHECKING)
                 .statements(List.of(timeStampStatement))
                 .balance(BigDecimal.valueOf(11)).build();
-        when(accountService.update(any(Account.class), any(Statement.class))).thenReturn(Optional.of(updatedAcc));
+        when(accountService.update(any(Account.class), any(Statement.class))).thenReturn(updatedAcc);
 
 
         mockMvc.perform(post("/account/" + id + "/statements")
@@ -152,7 +153,7 @@ class AccountControllerTest {
                 .type(AccountType.CHECKING)
                 .statements(List.of())
                 .balance(BigDecimal.valueOf(50)).build();
-        when(accountService.findById(id)).thenReturn(Optional.of(existingAcc));
+        when(accountService.findById(id)).thenReturn(existingAcc);
         Statement statementPostBody = Statement.builder()
                 .amount(BigDecimal.valueOf(11))
                 .type(StatementType.WITHDRAWAL)
@@ -167,7 +168,7 @@ class AccountControllerTest {
                 .type(AccountType.CHECKING)
                 .statements(List.of(timeStampStatement))
                 .balance(BigDecimal.valueOf(39)).build();
-        when(accountService.update(any(Account.class), any(Statement.class))).thenReturn(Optional.of(updatedAcc));
+        when(accountService.update(any(Account.class), any(Statement.class))).thenReturn(updatedAcc);
 
 
         mockMvc.perform(post("/account/" + id + "/statements")
@@ -183,6 +184,32 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.statements[0].type").value("WITHDRAWAL"))
                 .andExpect(jsonPath("$.statements[0].amount").value("11"))
                 .andExpect(jsonPath("$.statements[0].date").value("03/01/2022 11:30:29"))
+        ;
+    }
+
+    @Test
+    @DisplayName("POST Withdrawal /account/{id}/statements - Not sufficient Balance")
+    void testWithdrawalFromAccountUnsuccessful() throws Exception {
+        UUID id = UUID.randomUUID();
+        Account existingAcc = Account.builder()
+                .id(id)
+                .type(AccountType.CHECKING)
+                .statements(List.of())
+                .balance(BigDecimal.valueOf(50)).build();
+        when(accountService.findById(id)).thenReturn(existingAcc);
+        Statement statementPostBody = Statement.builder()
+                .amount(BigDecimal.valueOf(500))
+                .type(StatementType.WITHDRAWAL)
+                .build();
+
+        when(accountService.update(any(Account.class), any(Statement.class))).thenThrow(new AccountInsufficientBalance());
+
+        mockMvc.perform(post("/account/" + id + "/statements")
+                                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                .content(objectMapper.writeValueAsString(statementPostBody))
+//                        .header("If-Match", "1")
+                )
+                .andExpect(status().isBadRequest())
         ;
     }
 
@@ -203,7 +230,7 @@ class AccountControllerTest {
                 .type(AccountType.CHECKING)
                 .statements(statements)
                 .balance(BigDecimal.valueOf(50)).build();
-        when(accountService.findById(id)).thenReturn(Optional.of(existingAcc));
+        when(accountService.findById(id)).thenReturn(existingAcc);
         mockMvc.perform(get("/account/" + id + "/statements")
                         .param("size", "2"))
                 .andExpect(status().isOk())
@@ -232,7 +259,7 @@ class AccountControllerTest {
                 .type(AccountType.CHECKING)
                 .statements(statements)
                 .balance(BigDecimal.valueOf(50)).build();
-        when(accountService.findById(id)).thenReturn(Optional.of(existingAcc));
+        when(accountService.findById(id)).thenReturn(existingAcc);
         mockMvc.perform(get("/account/" + id + "/statements")
                         .param("size", "5")
                         .param("sort", "date,desc"))

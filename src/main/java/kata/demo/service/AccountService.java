@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import kata.demo.dto.Account;
 import kata.demo.dto.Statement;
+import kata.demo.exception.AccountInsufficientBalance;
+import kata.demo.exception.AccountNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -12,7 +14,10 @@ import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class AccountService {
@@ -45,20 +50,26 @@ public class AccountService {
         return newAccount;
     }
 
-    public Optional<Account> findById(UUID id) {
-        return Optional.ofNullable(accountsStorage.get(id));
+    public Account findById(UUID id) {
+        Account value = accountsStorage.get(id);
+        if (value == null) {
+            throw new AccountNotFoundException(id);
+        }
+        return value;
     }
 
-    public Optional<Account> update(Account account, Statement statement) {
-        Optional<Account> byId = findById(account.getId());
-        if (byId.isEmpty()) {
-            return Optional.empty();
+    public Account update(Account account, Statement statement) {
+        Account existingAccount = findById(account.getId());
+        if (existingAccount == null) {
+            throw new AccountNotFoundException(account.getId());
         }
 
-        Account existingAccount = byId.get();
         List<Statement> updatedStatements = new ArrayList<>(existingAccount.getStatements());
         updatedStatements.add(statement);
         BigDecimal updatedBalance = statement.applyStatement(existingAccount.getBalance());
+        if (updatedBalance.compareTo(BigDecimal.ZERO) == -1) {
+            throw new AccountInsufficientBalance();
+        }
         Account updated = Account.builder()
                 .type(existingAccount.getType())
                 .id(existingAccount.getId())
@@ -66,6 +77,6 @@ public class AccountService {
                 .balance(updatedBalance)
                 .build();
         accountsStorage.put(updated.getId(), updated);
-        return Optional.of(updated);
+        return updated;
     }
 }

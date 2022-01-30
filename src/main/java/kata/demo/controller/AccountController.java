@@ -64,16 +64,12 @@ public class AccountController {
     @Parameter(name = "id", in = ParameterIn.PATH, description = "Account Id", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
     @GetMapping("/{id}")
     public ResponseEntity<Account> getAccount(@PathVariable UUID id) {
-        return accountService.findById(id)
-                .map(acc -> {
-                    URI location = ServletUriComponentsBuilder
-                            .fromCurrentRequest()
-                            .build()
-                            .toUri();
-                    return ResponseEntity.created(location)
-                            .body(acc);
-                })
-                .orElse(ResponseEntity.notFound().build());
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .build()
+                .toUri();
+        return ResponseEntity.created(location)
+                .body(accountService.findById(id));
     }
 
     @Operation(summary = "Make a statement to the account")
@@ -100,23 +96,14 @@ public class AccountController {
     ) {
         statement.setDate(LocalDateTime.now());
         // get existing account
-        Optional<Account> existingAccount = accountService.findById(id);
-
-        @SuppressWarnings("unchecked")
-        ResponseEntity<Account> accountResponseEntity = (ResponseEntity<Account>) existingAccount.map(acc -> {
-            Optional<Account> saved = accountService.update(acc, statement);
-            if (saved.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-            URI location = ServletUriComponentsBuilder
-                    .fromCurrentRequest()
-                    .build()
-                    .toUri();
-            return ResponseEntity.created(location)
-                    .body(saved.get());
-        }).orElse(ResponseEntity.notFound().build());
-        return accountResponseEntity;
-
+        Account existingAccount = accountService.findById(id);
+        Account saved = accountService.update(existingAccount, statement);
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .build()
+                .toUri();
+        return ResponseEntity.created(location)
+                .body(saved);
     }
 
     @Operation(summary = "Print statements of the account")
@@ -146,11 +133,9 @@ public class AccountController {
 //                                           @RequestHeader("If-Match") Integer ifMatch
     ) {
         // get existing account
-        Optional<Account> existingAccount = accountService.findById(id);
-        return existingAccount.map(acc -> {
-            StatementPrinting print = createStatementPrinting(pageable, acc);
-            return ResponseEntity.ok(print);
-        }).orElse(ResponseEntity.notFound().build());
+        Account existingAccount = accountService.findById(id);
+        StatementPrinting print = createStatementPrinting(pageable, existingAccount);
+        return ResponseEntity.ok(print);
     }
 
     private StatementPrinting createStatementPrinting(Pageable pageable, Account existingAccount) {
