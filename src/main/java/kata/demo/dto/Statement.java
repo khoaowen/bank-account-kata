@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Data;
 
+import javax.validation.constraints.DecimalMin;
+import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -12,7 +14,10 @@ import java.time.LocalDateTime;
 public class Statement {
     @JsonFormat(pattern = "dd/MM/yyyy HH:mm:ss")
     LocalDateTime date;
+    @NotNull
     StatementType type;
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = false)
     BigDecimal amount;
 
     public BigDecimal applyStatement(BigDecimal balance) {

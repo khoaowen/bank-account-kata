@@ -75,6 +75,20 @@ class AccountControllerTest {
     }
 
     @Test
+    @DisplayName("POST /account - Bad Request")
+    void testCreateAccountBadRequest() throws Exception {
+        Account postAccount = Account.builder()
+                .type(null)
+                .statements(List.of())
+                .balance(null).build();
+
+        mockMvc.perform(post("/account")
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .content(objectMapper.writeValueAsString(postAccount)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("GET /account - Success")
     void testGetExistingAccount() throws Exception {
         UUID id = UUID.randomUUID();
@@ -140,6 +154,25 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.statements[0].type").value("DEPOSIT"))
                 .andExpect(jsonPath("$.statements[0].amount").value("11"))
                 .andExpect(jsonPath("$.statements[0].date").value("03/01/2022 11:30:29"))
+        ;
+
+    }
+
+    @Test
+    @DisplayName("POST Deposit Negative amount /account/{id}/statements - Bad request")
+    void testDespositNegativeAmountToAccount() throws Exception {
+        UUID id = UUID.randomUUID();
+        Statement statementPostBody = Statement.builder()
+                .amount(BigDecimal.valueOf(-110))
+                .type(StatementType.DEPOSIT)
+                .build();
+
+        mockMvc.perform(post("/account/" + id + "/statements")
+                                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                .content(objectMapper.writeValueAsString(statementPostBody))
+//                        .header("If-Match", "1")
+                )
+                .andExpect(status().isBadRequest())
         ;
 
     }

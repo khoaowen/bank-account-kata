@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import javax.validation.Valid;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -47,6 +48,7 @@ public class AccountController {
                                             "  \"statements\": []\n" +
                                             "}")}), required = true)
             @RequestBody
+            @Valid
                     Account account) {
         Account saved = accountService.save(account);
         URI location = ServletUriComponentsBuilder
@@ -90,7 +92,7 @@ public class AccountController {
                                                     "  \"type\": \"WITHDRAWAL\",\n" +
                                                     "  \"amount\": 15\n" +
                                                     "}")}), required = true)
-            @RequestBody Statement statement,
+            @RequestBody @Valid Statement statement,
             @PathVariable UUID id
 //                                           @RequestHeader("If-Match") Integer ifMatch
     ) {
