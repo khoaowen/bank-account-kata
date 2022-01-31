@@ -15,15 +15,16 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AccountService {
 
     //FIXME Requirement is NO PERSISTENCE, so I have to manually manage the database here with these boilerplate codes....
-    private final HashMap<UUID, Account> accountsStorage = new HashMap<>();
+    private final Map<UUID, Account> accountsStorage = new ConcurrentHashMap<>();
 
     @Value("classpath:sample/account_demo.json")
     Resource accountDemo;
@@ -43,7 +44,7 @@ public class AccountService {
      * Update or create the account. An Id will be generated if it's a new account, otherwise the existing account will be replaced with the new one
      *
      * @param account account to be created or updated
-     * @return
+     * @return the account
      */
     public Account save(Account account) {
         // No persistence so here I need to do all READ/WRITE operations for demo
@@ -60,7 +61,7 @@ public class AccountService {
      * Search for the account by the id
      *
      * @param id the account id
-     * @return
+     * @return the account
      */
     public Account findById(UUID id) {
         Account value = accountsStorage.get(id);
@@ -73,29 +74,28 @@ public class AccountService {
     /**
      * Make a statement/operation to the account, be a withdrawal or a deposit. The account balance will be updated and the statement will be added to its list
      *
-     * @param account   account to be updated with the statement
+     * @param accountId account Id to be updated with the statement
      * @param statement statement to be appliedy to the account, which could be a {@link kata.demo.dto.StatementType#DEPOSIT} or a {@link kata.demo.dto.StatementType#WITHDRAWAL}
-     * @return
+     * @return the updated account
      */
-    public Account update(Account account, Statement statement) {
-        Account existingAccount = findById(account.getId());
-        if (existingAccount == null) {
-            throw new AccountNotFoundException(account.getId());
-        }
+    public Account update(UUID accountId, Statement statement) {
 
-        List<Statement> updatedStatements = new ArrayList<>(existingAccount.getStatements());
-        updatedStatements.add(statement);
-        BigDecimal updatedBalance = statement.applyStatement(existingAccount.getBalance());
-        if (updatedBalance.compareTo(BigDecimal.ZERO) < 0) {
-            throw new AccountInsufficientBalance();
+        if (!accountsStorage.containsKey(accountId)) {
+            throw new AccountNotFoundException(accountId);
         }
-        Account updated = Account.builder()
-                .type(existingAccount.getType())
-                .id(existingAccount.getId())
-                .statements(updatedStatements)
-                .balance(updatedBalance)
-                .build();
-        accountsStorage.put(updated.getId(), updated);
-        return updated;
+        return accountsStorage.computeIfPresent(accountId, (k, v) -> {
+            List<Statement> updatedStatements = new ArrayList<>(v.getStatements());
+            updatedStatements.add(statement);
+            BigDecimal updatedBalance = statement.applyStatement(v.getBalance());
+            if (updatedBalance.compareTo(BigDecimal.ZERO) < 0) {
+                throw new AccountInsufficientBalance();
+            }
+            return Account.builder()
+                    .type(v.getType())
+                    .id(v.getId())
+                    .statements(updatedStatements)
+                    .balance(updatedBalance)
+                    .build();
+        });
     }
 }

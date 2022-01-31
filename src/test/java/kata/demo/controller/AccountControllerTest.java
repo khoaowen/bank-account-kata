@@ -99,8 +99,7 @@ class AccountControllerTest {
                 .balance(BigDecimal.ZERO).build();
         when(accountService.findById(id)).thenReturn(mockedAccount);
         mockMvc.perform(get("/account/" + id))
-                .andExpect(status().isCreated())
-                .andExpect(redirectedUrlPattern("http://*/account/" + id));
+                .andExpect(status().isOk());
 
     }
 
@@ -138,7 +137,7 @@ class AccountControllerTest {
                 .type(AccountType.CHECKING)
                 .statements(List.of(timeStampStatement))
                 .balance(BigDecimal.valueOf(11)).build();
-        when(accountService.update(any(Account.class), any(Statement.class))).thenReturn(updatedAcc);
+        when(accountService.update(any(UUID.class), any(Statement.class))).thenReturn(updatedAcc);
 
 
         mockMvc.perform(post("/account/" + id + "/statements")
@@ -201,7 +200,7 @@ class AccountControllerTest {
                 .type(AccountType.CHECKING)
                 .statements(List.of(timeStampStatement))
                 .balance(BigDecimal.valueOf(39)).build();
-        when(accountService.update(any(Account.class), any(Statement.class))).thenReturn(updatedAcc);
+        when(accountService.update(any(UUID.class), any(Statement.class))).thenReturn(updatedAcc);
 
 
         mockMvc.perform(post("/account/" + id + "/statements")
@@ -235,7 +234,7 @@ class AccountControllerTest {
                 .type(StatementType.WITHDRAWAL)
                 .build();
 
-        when(accountService.update(any(Account.class), any(Statement.class))).thenThrow(new AccountInsufficientBalance());
+        when(accountService.update(any(UUID.class), any(Statement.class))).thenThrow(new AccountInsufficientBalance());
 
         mockMvc.perform(post("/account/" + id + "/statements")
                                 .contentType(MediaType.APPLICATION_JSON_VALUE)

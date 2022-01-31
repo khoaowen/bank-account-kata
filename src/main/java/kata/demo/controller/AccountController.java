@@ -66,12 +66,7 @@ public class AccountController {
     @Parameter(name = "id", in = ParameterIn.PATH, description = "Account Id", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
     @GetMapping("/{id}")
     public ResponseEntity<Account> getAccount(@PathVariable UUID id) {
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentRequest()
-                .build()
-                .toUri();
-        return ResponseEntity.created(location)
-                .body(accountService.findById(id));
+        return ResponseEntity.ok(accountService.findById(id));
     }
 
     @Operation(summary = "Make a statement to the account")
@@ -97,9 +92,7 @@ public class AccountController {
 //                                           @RequestHeader("If-Match") Integer ifMatch
     ) {
         statement.setDate(LocalDateTime.now());
-        // get existing account
-        Account existingAccount = accountService.findById(id);
-        Account saved = accountService.update(existingAccount, statement);
+        Account saved = accountService.update(id, statement);
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()
                 .build()

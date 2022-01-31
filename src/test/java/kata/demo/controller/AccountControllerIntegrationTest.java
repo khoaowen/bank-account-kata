@@ -1,6 +1,7 @@
 package kata.demo.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import kata.demo.dto.Account;
 import kata.demo.dto.AccountType;
 import kata.demo.dto.Statement;
@@ -18,12 +19,14 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
@@ -35,7 +38,9 @@ class AccountControllerIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder()
+            .findAndAddModules()
+            .build();
 
     @Test
     @DisplayName("POST /account - Success")
@@ -58,8 +63,7 @@ class AccountControllerIntegrationTest {
     void testGetExistingAccount() throws Exception {
         Account saved = populateAnAccount();
         mockMvc.perform(get("/account/" + saved.getId()))
-                .andExpect(status().isCreated())
-                .andExpect(redirectedUrlPattern("http://*/account/" + saved.getId()));
+                .andExpect(status().isOk());
 
     }
 
@@ -137,6 +141,36 @@ class AccountControllerIntegrationTest {
                 .andExpect(jsonPath("$.balance").value(BigDecimal.ZERO))
                 .andExpect(jsonPath("$.statements", Matchers.hasSize(2)))
         ;
+
+    }
+
+
+    @Test
+    @DisplayName("POST Deposit concurrently /account/{id}/statements - Success")
+    void testDepositToAccountConcurrently() throws Exception {
+        Account account = populateAnAccountWithStatement();
+        List<Statement> statements = new ArrayList<>();
+        for (int i = 10; i < 101; i += 10) {
+            statements.add(Statement.builder()
+                    .type(StatementType.DEPOSIT)
+                    .amount(BigDecimal.valueOf(i))
+                    .build());
+        }
+        statements.parallelStream().forEach(statement -> {
+            try {
+                mockMvc.perform(post("/account/" + account.getId() + "/statements")
+                                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                        .content(objectMapper.writeValueAsString(statement))
+                                //                        .header("If-Match", "1")
+                        )
+                        .andExpect(status().isCreated());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        mockMvc.perform(get("/account/" + account.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.balance").value(560));
 
     }
 }
